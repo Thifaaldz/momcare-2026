@@ -66,4 +66,17 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
     {
         return true;
     }
+
+    /**
+     * Relasi: User punya satu Patient
+     */
+    public function patient()
+    {
+        return $this->hasOne(Patient::class);
+    }
+
+    public function chatSession()
+    {
+        return $this->hasOne(ChatSession::class);
+    }
 }
