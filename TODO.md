@@ -1,80 +1,54 @@
-# Chatbot Redesign - Cyberpunk Web3 Theme
+# TODO - Upload File ke N8N Webhook
 
-## Status: ✅ COMPLETED
+## Rencana Implementasi
 
-### Files Created/Modified
+### 1. Modifikasi Chatbot.php
+- [ ] Tambah property `$uploadedFile` untuk menyimpan file yang diupload
+- [ ] Tambah method `uploadFile()` untuk upload file ke server Laravel
+- [ ] Modifikasi `sendMessage()` untuk mengirim file ke N8N
+- [ ] Tambahkan data patient lengkap ke webhook
 
-| File | Status | Description |
-|------|--------|-------------|
-| `src/public/front/css/chat.css` | ✅ Created | Cyberpunk Web3 styling with neon effects |
-| `src/resources/views/livewire/chatbot.blade.php` | ✅ Created | Modern chat UI with avatar & timestamps |
-| `src/app/Livewire/Chatbot.php` | ✅ Enhanced | Added typing indicator, error handling |
-| `src/resources/views/components/layouts/chat-layout.blade.php` | ✅ Enhanced | Loading screen, cyber background |
-| `src/public/front/js/chat.js` | ✅ Created | Keyboard shortcuts, animations |
+### 2. Modifikasi chatbot.blade.php
+- [ ] Tambah button upload file (paperclip/camera icon)
+- [ ] Tambah input file tersembunyi
+- [ ] Tampilkan preview file yang akan dikirim
+- [ ] Tambah tombol hapus file yang diupload
 
-### Features Implemented
+### 3. Modifikasi chat.js
+- [ ] Handle file selection
+- [ ] Upload file via Livewire upload
+- [ ] Tampilkan progress/preview file
 
-#### 🎨 Cyberpunk Web3 Design
-- Neon pink/cyan/purple color scheme
-- Glowing effects on avatars and buttons
-- Animated gradient borders
-- Glitch text effects on title
-- Grid overlay background
-- Scanline effect
+### 4. Struktur JSON ke N8N
+```json
+{
+  "message": "Keluhan user",
+  "file": {
+    "name": "nama-file.jpg",
+    "type": "image/jpeg",
+    "size": 102400,
+    "url": "http://app:8080/uploads/filename.jpg",
+    "base64": "...base64 data..."
+  },
+  "patient": {
+    "id": 1,
+    "name": "Nama Pasien",
+    "age": 25,
+    "pregnancy_week": 12,
+    "blood_type": "A",
+    "weight": 60,
+    "height": 160
+  },
+  "history": [...],
+  "session_id": 123
+}
+```
 
-#### 💬 Chat Interface
-- **WhatsApp-style bubbles**: 
-  - User messages: Pink gradient, right-aligned
-  - AI messages: Dark card, left-aligned with avatar
-- **Avatars**: User (👤) and AI (◈ diamond symbol)
-- **Timestamps**: Displayed on each message
-- **Online status indicator**: Green dot with "Powered by n8n"
+---
 
-#### ⌨️ Keyboard Shortcuts
-- `Ctrl/Cmd + Enter` - Send message
-- `/` - Focus input
-- `Esc` - Blur input
-- `Ctrl/Cmd + N` - New chat
-
-#### ✨ Animations
-- Message slide-in animation
-- Typing indicator with bouncing dots
-- Pulsing avatar glow
-- Loading screen with progress bar
-- Parallax mouse effect
-
-#### 🔧 Enhanced Features
-- Loading screen with animated logo
-- Auto-scroll to bottom on new messages
-- Better error handling for n8n webhook
-- Session management with timestamps
-- Web3 connected badge
-
-### Design References
-- **Blackbox AI**: Dark theme with code-like aesthetics
-- **Gemini**: Clean, modern interface with status indicators
-- **OpenAI**: Professional chat layout with avatars
-- **WhatsApp**: Familiar bubble design
-- **Web3/Cyberpunk**: Neon glows, glitch effects, futuristic elements
-
-### Color Palette
-- Primary: `#ff00ff` (Neon Pink)
-- Secondary: `#00ffff` (Neon Cyan)
-- Accent: `#bf00ff` (Neon Purple)
-- Success: `#00ff88` (Neon Green)
-- Background: `#0a0a0f` (Dark)
-
-### How to Use
-1. Navigate to `/chat` or `/chatbot` route
-2. Click "+ New Chat" to start a conversation
-3. Type your message and press Enter or click Send
-4. Messages appear in WhatsApp-style bubbles
-5. AI responses show typing indicator before appearing
-
-### Next Steps (Optional)
-- [ ] Add sound effects for messages
-- [ ] Implement message reactions
-- [ ] Add code syntax highlighting for medical info
-- [ ] Implement end-to-end encryption badge
-- [ ] Add NFT avatar support
+## Progress
+- [ ] 1. Modifikasi Chatbot.php
+- [ ] 2. Modifikasi chatbot.blade.php
+- [ ] 3. Modifikasi chat.js
+- [ ] 4. Testing
 

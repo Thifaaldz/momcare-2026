@@ -29,7 +29,7 @@ return [
     ],
 
     'n8n' => [
-        'chatbot_webhook' => env('N8N_CHATBOT_WEBHOOK'),
+        'webhook' => env('N8N_WEBHOOK_URL'),
     ],
 
     'slack' => [

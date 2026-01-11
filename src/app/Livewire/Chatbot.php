@@ -4,160 +4,96 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\ChatSession;
-use App\Models\ChatMessage;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class Chatbot extends Component
 {
-    public $chatSessions = [];
-    public $currentSession = null;
-    public $messages = [];
     public $message = '';
+    public $messages = [];
+    public $chatSessions = [];
+    public $currentSession;
     public $isTyping = false;
-
-    protected $listeners = ['newChat' => 'createNewChat'];
 
     public function mount()
     {
         $user = auth()->user();
-        if (!$user) {
-            return redirect()->route('login');
-        }
 
-        $this->loadChatSessions();
-        
-        // Load or create current session
-        if (!empty($this->chatSessions)) {
-            $this->currentSession = ChatSession::find($this->chatSessions[0]['id']);
-            $this->loadMessages();
-        } else {
-            $this->createNewChat();
-        }
-    }
-
-    public function loadChatSessions()
-    {
-        $user = auth()->user();
-        $sessions = ChatSession::where('user_id', $user->id)
-            ->orderBy('updated_at', 'desc')
+        // Ambil semua session user
+        $this->chatSessions = ChatSession::where('user_id', $user->id)
+            ->latest()
             ->get();
-        $this->chatSessions = $sessions->toArray();
+
+        // Ambil session terakhir atau buat baru
+        $this->currentSession = $this->chatSessions->first()
+            ?? ChatSession::create([
+                'user_id'    => $user->id,
+                'patient_id' => $user->patient->id,
+                'title'      => 'Chat - ' . now()->format('d/m H:i'),
+            ]);
+
+        $this->loadMessages();
     }
 
     public function loadMessages()
     {
-        if (!$this->currentSession) {
-            $this->messages = [];
-            return;
-        }
-
-        $messages = $this->currentSession
+        $this->messages = $this->currentSession
             ->messages()
-            ->orderBy('created_at', 'asc')
-            ->get();
-
-        $this->messages = $messages->toArray();
-
-        // Emit event for JavaScript (Livewire 3.x)
-        $this->dispatch('messagesLoaded');
+            ->orderBy('created_at')
+            ->get()
+            ->toArray();
     }
 
     public function sendMessage()
     {
-        if (trim($this->message) === '') {
-            return;
-        }
+        if (!$this->message) return;
 
-        $userMessageContent = trim($this->message);
-        $this->isTyping = true;
-
-        // Save user message
+        // 1️⃣ Simpan pesan user
         $this->currentSession->messages()->create([
-            'sender' => 'user',
-            'message' => $userMessageContent,
+            'sender'  => 'user',
+            'message' => $this->message,
         ]);
 
+        // 2️⃣ Ambil history terakhir (cukup 8)
+        $history = $this->currentSession->messages()
+            ->orderBy('created_at')
+            ->take(8)
+            ->get()
+            ->map(fn ($m) => [
+                'role'    => $m->sender === 'user' ? 'user' : 'assistant',
+                'content' => $m->message,
+            ])
+            ->values();
+
+        $this->isTyping = true;
         $this->message = '';
         $this->loadMessages();
-        $this->dispatch('scrollToBottom');
 
-        // Send to n8n webhook with patient data
+        // 3️⃣ Kirim ke n8n
         try {
-            $patient = $this->currentSession->patient;
-            $history = collect($this->messages)->map(function($msg) {
-                return [
-                    'sender' => $msg['sender'],
-                    'message' => $msg['message'],
-                ];
-            })->toArray();
+            $response = Http::timeout(30)->post(
+                config('services.n8n.webhook'),
+                [
+                    'session_id' => $this->currentSession->id,
+                    'patient'    => auth()->user()->patient,
+                    'history'    => $history,
+                ]
+            );
 
-            $response = Http::timeout(30)->post(env('N8N_CHATBOT_WEBHOOK', 'http://localhost:5678/webhook/chatbot'), [
-                'message' => $userMessageContent,
-                'patient' => [
-                    'id' => $patient->id ?? null,
-                    'name' => $patient->name ?? 'User',
-                    'age' => $patient->age ?? null,
-                    'pregnancy_week' => $patient->pregnancy_week ?? null,
-                ],
-                'history' => $history,
-                'session_id' => $this->currentSession->id,
-            ]);
+            $reply = $response->json('reply')
+                ?? 'Keluhan seperti ini cukup sering terjadi pada kehamilan, Bu. Namun saya ingin memastikan kondisinya aman.';
 
-            $aiReply = $response->successful() ? ($response->json('reply') ?? $response->json('output') ?? 'Maaf, terjadi kesalahan. Silakan coba lagi.') : 'Maaf, layanan AI sedang tidak tersedia. Silakan coba beberapa saat lagi.';
         } catch (\Exception $e) {
-            $aiReply = 'Maaf, terjadi kesalahan koneksi. Silakan periksa koneksi internet Anda dan coba lagi.';
-            Log::error('Chatbot Error: ' . $e->getMessage());
+            $reply = 'Maaf ya, Bu, saya sedikit kesulitan merespon. Kita coba lagi sebentar.';
         }
 
+        // 4️⃣ Simpan jawaban AI
         $this->currentSession->messages()->create([
-            'sender' => 'ai',
-            'message' => $aiReply,
+            'sender'  => 'ai',
+            'message' => $reply,
         ]);
 
         $this->isTyping = false;
         $this->loadMessages();
-        $this->dispatch('scrollToBottom');
-    }
-
-    public function createNewChat()
-    {
-        $user = auth()->user();
-        
-        $this->currentSession = ChatSession::create([
-            'user_id' => $user->id,
-            'patient_id' => $user->patient->id ?? null,
-            'title' => 'Chat Baru - ' . now()->format('d/m H:i'),
-            'status' => 'active',
-        ]);
-
-        $this->loadChatSessions();
-        $this->messages = [];
-        $this->dispatch('scrollToBottom');
-    }
-
-    public function loadChat($sessionId)
-    {
-        $this->currentSession = ChatSession::find($sessionId);
-        if ($this->currentSession) {
-            $this->loadMessages();
-            $this->dispatch('scrollToBottom');
-        }
-    }
-
-    public function deleteChat($sessionId)
-    {
-        ChatSession::find($sessionId)?->delete();
-        $this->loadChatSessions();
-        
-        if ($this->currentSession && $this->currentSession->id === $sessionId) {
-            $this->createNewChat();
-        }
-    }
-
-    public function getAvatar($sender)
-    {
-        return $sender === 'user' ? '👤' : '◈';
     }
 
     public function render()
