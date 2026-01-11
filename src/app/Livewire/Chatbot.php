@@ -162,7 +162,7 @@ class Chatbot extends Component
 
     public function render()
     {
-        return view('livewire.chatbot');
+        return view('livewire.chatbot')
+            ->layout('components.layouts.chat-layout');
     }
 }
-
