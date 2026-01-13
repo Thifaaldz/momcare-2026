@@ -47,13 +47,13 @@ class Chatbot extends Component
     {
         if (!$this->message) return;
 
-        // 1️⃣ Simpan pesan user
+        // Simpan pesan user
         $this->currentSession->messages()->create([
             'sender'  => 'user',
             'message' => $this->message,
         ]);
 
-        // 2️⃣ Ambil history terakhir (cukup 8)
+        // Ambil history terakhir 8 pesan
         $history = $this->currentSession->messages()
             ->orderBy('created_at')
             ->take(8)
@@ -68,7 +68,7 @@ class Chatbot extends Component
         $this->message = '';
         $this->loadMessages();
 
-        // 3️⃣ Kirim ke n8n
+        // Kirim ke n8n
         try {
             $response = Http::timeout(30)->post(
                 config('services.n8n.webhook'),
@@ -81,18 +81,55 @@ class Chatbot extends Component
 
             $reply = $response->json('reply')
                 ?? 'Keluhan seperti ini cukup sering terjadi pada kehamilan, Bu. Namun saya ingin memastikan kondisinya aman.';
-
         } catch (\Exception $e) {
             $reply = 'Maaf ya, Bu, saya sedikit kesulitan merespon. Kita coba lagi sebentar.';
         }
 
-        // 4️⃣ Simpan jawaban AI
+        // Simpan jawaban AI
         $this->currentSession->messages()->create([
             'sender'  => 'ai',
             'message' => $reply,
         ]);
 
         $this->isTyping = false;
+        $this->loadMessages();
+    }
+
+    // =====================
+    // Metode baru untuk Chat Baru
+    // =====================
+    public function newChat()
+    {
+        $user = auth()->user();
+
+        // Buat session baru
+        $session = ChatSession::create([
+            'user_id'    => $user->id,
+            'patient_id' => $user->patient->id,
+            'title'      => 'Chat - ' . now()->format('d/m H:i'),
+        ]);
+
+        // Set sebagai current session
+        $this->currentSession = $session;
+
+        // Reload semua session user
+        $this->chatSessions = ChatSession::where('user_id', $user->id)
+            ->latest()
+            ->get();
+
+        // Kosongkan pesan chat
+        $this->messages = [];
+    }
+
+    // =====================
+    // Metode untuk load session yang sudah ada
+    // =====================
+    public function loadChat($id)
+    {
+        $session = ChatSession::find($id);
+        if (!$session) return;
+
+        $this->currentSession = $session;
         $this->loadMessages();
     }
 

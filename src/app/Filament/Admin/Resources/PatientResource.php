@@ -23,7 +23,26 @@ class PatientResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\Select::make('user_id')
+                    ->relationship('user', 'name')
+                    ->required()
+                    ->label('User'),
+                Forms\Components\TextInput::make('usia_kehamilan_minggu')
+                    ->required()
+                    ->numeric()
+                    ->label('Usia Kehamilan (Minggu)'),
+                Forms\Components\TextInput::make('usia_ibu')
+                    ->required()
+                    ->numeric()
+                    ->label('Usia Ibu'),
+                Forms\Components\TextInput::make('berat_badan')
+                    ->required()
+                    ->numeric()
+                    ->label('Berat Badan'),
+                Forms\Components\TextInput::make('tinggi_badan')
+                    ->required()
+                    ->numeric()
+                    ->label('Tinggi Badan'),
             ]);
     }
 
@@ -31,7 +50,35 @@ class PatientResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('User')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('usia_kehamilan_minggu')
+                    ->label('Usia Kehamilan (Minggu)')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('usia_ibu')
+                    ->label('Usia Ibu')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('berat_badan')
+                    ->label('Berat Badan')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('tinggi_badan')
+                    ->label('Tinggi Badan')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created At')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Updated At')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
