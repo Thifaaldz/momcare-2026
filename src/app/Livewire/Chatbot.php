@@ -43,17 +43,20 @@ class Chatbot extends Component
             ->toArray();
     }
 
+    // ==========================
+    // KIRIM PESAN (CHAT UTAMA)
+    // ==========================
     public function sendMessage()
     {
         if (!$this->message) return;
 
-        // Simpan pesan user
+        // 1️⃣ Simpan pesan user
         $this->currentSession->messages()->create([
             'sender'  => 'user',
             'message' => $this->message,
         ]);
 
-        // Ambil history terakhir 8 pesan
+        // 2️⃣ Ambil history terakhir (maks 8)
         $history = $this->currentSession->messages()
             ->orderBy('created_at')
             ->take(8)
@@ -64,11 +67,12 @@ class Chatbot extends Component
             ])
             ->values();
 
-        $this->isTyping = true;
+        // 3️⃣ Reset input & tampilkan "AI mengetik"
         $this->message = '';
+        $this->isTyping = true;
         $this->loadMessages();
 
-        // Kirim ke n8n
+        // 4️⃣ Kirim ke n8n
         try {
             $response = Http::timeout(30)->post(
                 config('services.n8n.webhook'),
@@ -80,50 +84,52 @@ class Chatbot extends Component
             );
 
             $reply = $response->json('reply')
-                ?? 'Keluhan seperti ini cukup sering terjadi pada kehamilan, Bu. Namun saya ingin memastikan kondisinya aman.';
+                ?? 'Baik Bu, saya jelaskan secara umum terlebih dahulu ya.';
+
         } catch (\Exception $e) {
-            $reply = 'Maaf ya, Bu, saya sedikit kesulitan merespon. Kita coba lagi sebentar.';
+            $reply = 'Maaf Bu, saat ini sistem sedang sibuk. Silakan coba lagi.';
         }
 
-        // Simpan jawaban AI
+        // 5️⃣ Simpan balasan AI (FULL TEXT)
         $this->currentSession->messages()->create([
             'sender'  => 'ai',
             'message' => $reply,
         ]);
 
+        // 6️⃣ Matikan typing indicator
         $this->isTyping = false;
+
+        // 7️⃣ Kirim teks ke JavaScript untuk efek mengetik
+        $this->dispatch('ai-typing', text: $reply);
+
         $this->loadMessages();
     }
 
-    // =====================
-    // Metode baru untuk Chat Baru
-    // =====================
+    // ==========================
+    // CHAT BARU
+    // ==========================
     public function newChat()
     {
         $user = auth()->user();
 
-        // Buat session baru
         $session = ChatSession::create([
             'user_id'    => $user->id,
             'patient_id' => $user->patient->id,
             'title'      => 'Chat - ' . now()->format('d/m H:i'),
         ]);
 
-        // Set sebagai current session
         $this->currentSession = $session;
 
-        // Reload semua session user
         $this->chatSessions = ChatSession::where('user_id', $user->id)
             ->latest()
             ->get();
 
-        // Kosongkan pesan chat
         $this->messages = [];
     }
 
-    // =====================
-    // Metode untuk load session yang sudah ada
-    // =====================
+    // ==========================
+    // LOAD CHAT LAMA
+    // ==========================
     public function loadChat($id)
     {
         $session = ChatSession::find($id);
