@@ -231,7 +231,7 @@ N8N_WEBHOOK_URL = 'http://n8n:5678/webhook/chatbot'
 
 ### Groq API
 - **Type:** Groq API Credentials
-- **Credential ID:** `49ruadeJqqYvo9cV`
+- **Credential ID:** `49rua`
 - **Name:** Groq account
 
 **Cara Setup:**
